@@ -1,0 +1,25 @@
+# GenLayer network configuration
+# Docs: https://docs.genlayer.com/developers/intelligent-contracts/deploying/network-configuration
+
+networks:
+  localnet:
+    rpc: http://127.0.0.1:8080
+    chain_id: 4221
+
+  studionet:
+    rpc: https://studio.genlayer.com/api
+    chain_id: 61999
+
+  testnetAsimov:
+    rpc: https://rpc-asimov.genlayer.com
+    chain_id: 4221
+    explorer: https://explorer-asimov.genlayer.com
+    faucet: https://testnet-faucet.genlayer.foundation
+
+  testnetBradbury:
+    rpc: https://rpc-bradbury.genlayer.com
+    chain_id: 4221
+    explorer: https://explorer-bradbury.genlayer.com
+    faucet: https://testnet-faucet.genlayer.foundation
+
+default_network: testnetBradbury

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CoverGuard — Parametric Insurance Adjudicated On-chain</title>
+<meta name="description" content="CoverGuard: parametric insurance on GenLayer. The policy names a data source, an LLM jury reads it on-chain to decide if the trigger fired, and the contract pays out real GEN." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#06131a; --surface:#0d1f2a; --card:#0f2734; --line:#1b3a4b; --line2:#28556b;
+    --cyan:#22d3ee; --mint:#5eead4; --sky:#38bdf8; --gold:#fbbf24;
+    --ok:#34d399; --warn:#fbbf24; --err:#fb7185; --txt:#e6f6fb; --mut:#8fb3c2; --faint:#5f8494;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Chakra Petch',system-ui,sans-serif;
+    background:
+      radial-gradient(900px 520px at 12% -10%, rgba(34,211,238,.14) 0%, transparent 60%),
+      radial-gradient(700px 480px at 92% 105%, rgba(94,234,212,.10) 0%, transparent 60%),
+      var(--bg);
+    color:var(--txt); min-height:100vh; padding:26px 18px 60px;
+  }
+  .wrap{max-width:1120px;margin:0 auto}
+  header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+         padding-bottom:16px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:12px}
+  .shield{width:42px;height:42px;border-radius:12px;background:linear-gradient(150deg,var(--cyan),var(--sky));
+          display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#04222b;
+          box-shadow:0 4px 20px rgba(34,211,238,.32)}
+  h1{font-size:22px;font-weight:600;letter-spacing:.2px}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--faint);margin-top:3px}
+  .wallet{display:flex;gap:9px;align-items:center}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--faint);display:inline-block}
+  .dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+  .pill{font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 11px;border-radius:999px;
+        background:var(--surface);border:1px solid var(--line);color:var(--mut)}
+  button{font-family:inherit;cursor:pointer;border-radius:9px;font-size:13.5px;padding:9px 16px;
+         border:1px solid var(--line2);background:var(--card);color:var(--txt);transition:.16s}
+  button:hover{border-color:var(--cyan);color:var(--cyan)}
+  button.solid{background:linear-gradient(140deg,var(--cyan),var(--sky));border:none;color:#04222b;font-weight:600}
+  button.solid:hover{filter:brightness(1.08);color:#04222b}
+  button.mint{background:rgba(94,234,212,.14);border:1px solid rgba(94,234,212,.45);color:var(--mint)}
+  button.ghost{background:transparent;border-color:var(--line)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .intro{margin:24px 0 20px}
+  .intro h2{font-size:27px;line-height:1.25;font-weight:600}
+  .intro h2 em{font-style:normal;color:var(--cyan)}
+  .intro p{color:var(--mut);font-size:14px;line-height:1.65;margin-top:10px;max-width:760px}
+  .pool{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0 8px}
+  @media(max-width:780px){.pool{grid-template-columns:1fr 1fr}}
+  .pcard{background:linear-gradient(160deg,var(--card),var(--surface));border:1px solid var(--line);
+         border-radius:13px;padding:15px}
+  .pcard .k{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);letter-spacing:.5px}
+  .pcard .n{font-size:23px;font-weight:600;margin-top:6px;color:var(--cyan)}
+  .pcard .n small{font-size:11px;color:var(--faint);font-weight:400;margin-left:3px}
+  .sec{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:26px 0 12px;flex-wrap:wrap}
+  .sec h3{font-size:14.5px;font-weight:600}
+  .sec h3 span{color:var(--faint);font-weight:400;font-size:12.5px;margin-left:7px}
+  .list{display:grid;gap:12px}
+  .pol{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:.18s}
+  .pol:hover{border-color:var(--cyan);transform:translateX(2px)}
+  .pol.sel{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset}
+  .pol .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .pol .id{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)}
+  .badge{font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:3px 9px;border-radius:6px}
+  .b0{background:rgba(251,191,36,.14);color:var(--warn);border:1px solid rgba(251,191,36,.4)}
+  .b1{background:rgba(34,211,238,.15);color:var(--cyan);border:1px solid rgba(34,211,238,.4)}
+  .b2{background:rgba(94,234,212,.15);color:var(--mint);border:1px solid rgba(94,234,212,.4)}
+  .b3{background:rgba(143,179,194,.15);color:var(--mut);border:1px solid var(--line)}
+  .b4{background:rgba(251,113,133,.14);color:var(--err);border:1px solid rgba(251,113,133,.35)}
+  .pol .cond{font-size:13px;color:var(--mut);margin-top:9px;line-height:1.55;
+             display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .pol .nums{display:flex;gap:20px;margin-top:12px;padding-top:11px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .pol .nums div{font-size:12px;color:var(--faint)}
+  .pol .nums b{display:block;font-size:16px;color:var(--txt);font-weight:600;margin-top:2px}
+  .pol .nums b.c{color:var(--cyan)}
+  .detail{background:var(--card);border:1px solid var(--line2);border-radius:15px;padding:20px;margin-top:16px;display:none}
+  .detail.show{display:block}
+  .detail h3{font-size:17px;margin-bottom:12px}
+  .kv{font-size:13px;color:var(--mut);line-height:1.8}
+  .kv b{color:var(--cyan);font-weight:500}
+  .src{background:var(--surface);border-left:3px solid var(--cyan);border-radius:0 9px 9px 0;
+       padding:11px 14px;font-size:12.5px;line-height:1.6;margin-top:9px;word-break:break-all}
+  .src a{color:var(--cyan);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+  .verdict{margin-top:14px;border-radius:11px;padding:14px;font-size:13px;line-height:1.65}
+  .verdict.yes{background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.35)}
+  .verdict.no{background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.3)}
+  .verdict .t{font-family:'JetBrains Mono',monospace;font-size:11px;margin-bottom:6px}
+  .verdict.yes .t{color:var(--ok)}
+  .verdict.no .t{color:var(--err)}
+  .verdict p{font-style:italic;color:var(--txt)}
+  .acts{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:22px}
+  @media(max-width:860px){.acts{grid-template-columns:1fr}}
+  .act{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .act h4{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--mut);letter-spacing:.6px;margin-bottom:4px}
+  .act .hint{font-size:11.5px;color:var(--faint);margin-bottom:12px}
+  label{display:block;font-size:11.5px;color:var(--mut);margin:10px 0 5px}
+  input,textarea{width:100%;background:var(--surface);border:1px solid var(--line);color:var(--txt);
+                 border-radius:8px;padding:10px 12px;font-family:inherit;font-size:13.5px}
+  input:focus,textarea:focus{outline:none;border-color:var(--cyan)}
+  textarea{min-height:60px;resize:vertical}
+  .btnrow{display:flex;gap:9px;align-items:center;margin-top:13px;flex-wrap:wrap}
+  .msg{margin-top:10px;font-size:12.5px;padding:10px 12px;border-radius:8px;display:none;word-break:break-all;
+       font-family:'JetBrains Mono',monospace;line-height:1.5}
+  .msg.show{display:block}
+  .msg.ok{background:rgba(52,211,153,.1);color:var(--ok);border:1px solid rgba(52,211,153,.3)}
+  .msg.err{background:rgba(251,113,133,.1);color:var(--err);border:1px solid rgba(251,113,133,.3)}
+  .msg.info{background:rgba(34,211,238,.09);color:var(--cyan);border:1px solid rgba(34,211,238,.3)}
+  .empty{border:1px dashed var(--line2);border-radius:13px;padding:30px;text-align:center;color:var(--faint);font-size:13px}
+  footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);text-align:center;
+         font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--faint);line-height:2}
+  footer a{color:var(--mut);text-decoration:none}footer a:hover{color:var(--cyan)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="shield">◈</div>
+      <div>
+        <h1>CoverGuard</h1>
+        <div class="tag">parametric insurance · adjudicated on GenLayer Bradbury</div>
+      </div>
+    </div>
+    <div class="wallet">
+      <span class="pill"><span class="dot" id="netDot"></span> <span id="netLabel">read-only</span></span>
+      <button class="solid" id="connectBtn">Connect wallet</button>
+    </div>
+  </header>
+
+  <div class="intro">
+    <h2>Policies name a data source.<br /><em>The chain reads it and pays out.</em></h2>
+    <p>
+      No trusted oracle. The holder pays a premium, the underwriter locks collateral, and the
+      trigger condition is written in plain language. When a claim is judged, the contract
+      fetches the named source <b>on-chain</b> and an LLM jury decides whether the hazard
+      occurred — then the escrow moves to the right party.
+    </p>
+  </div>
+
+  <div class="pool">
+    <div class="pcard"><div class="k">FUNDS UNDER CUSTODY</div><div class="n" id="sPool">–<small>GEN</small></div></div>
+    <div class="pcard"><div class="k">POLICIES</div><div class="n" id="sCount">–</div></div>
+    <div class="pcard"><div class="k">ACTIVE COVER</div><div class="n" id="sActive">–</div></div>
+    <div class="pcard"><div class="k">TRIGGERED</div><div class="n" id="sTrig">–</div></div>
+  </div>
+
+  <div class="sec">
+    <h3>Policy ledger <span id="ledgerNote"></span></h3>
+    <div class="btnrow" style="margin:0">
+      <input id="jumpId" type="number" min="1" placeholder="policy #" style="max-width:110px" />
+      <button class="ghost" id="jumpBtn">Open</button>
+      <button class="ghost" id="reloadBtn">↻ Reload</button>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="detail" id="detail">
+    <h3 id="dTitle">—</h3>
+    <div class="kv" id="dMeta"></div>
+    <div style="margin-top:12px">
+      <label style="margin:0">TRIGGER CONDITION <span style="color:var(--faint)">(the jury's yardstick)</span></label>
+      <div class="src" id="dCond"></div>
+      <label style="margin-top:12px">DATA SOURCE <span style="color:var(--faint)">(fetched on-chain at judgement)</span></label>
+      <div class="src" id="dUrl"></div>
+    </div>
+    <div id="dVerdict"></div>
+    <div class="btnrow">
+      <button class="solid" id="dJudgeBtn">Judge the claim (LLM reads the source)</button>
+      <button class="mint" id="dSettleBtn">Settle (pay out)</button>
+      <div class="msg" id="dMsg"></div>
+    </div>
+  </div>
+
+  <div class="acts">
+    <div class="act">
+      <h4>OPEN A POLICY (PAY PREMIUM)</h4>
+      <div class="hint">The premium is sent with this call and held by the contract.</div>
+      <label>Underwriter address</label>
+      <input id="fUw" placeholder="0x…" />
+      <label>Data source URL (read on-chain at judging time)</label>
+      <input id="fUrl" placeholder="https://example.com/weather-report" />
+      <label>Trigger condition (plain language)</label>
+      <textarea id="fCond" placeholder="e.g. the page reports rainfall above 50mm"></textarea>
+      <label>Premium (GEN)</label>
+      <input id="fPrem" type="number" min="0" step="0.01" placeholder="0.1" />
+      <div class="btnrow"><button class="solid" id="createBtn">Pay premium &amp; open policy</button></div>
+      <div class="msg" id="createMsg"></div>
+    </div>
+
+    <div class="act">
+      <h4>UNDERWRITE / REFUND</h4>
+      <div class="hint">Locking collateral activates the policy. Premium is only refundable while unaccepted.</div>
+      <label>Policy #</label>
+      <input id="fId" type="number" min="1" value="1" />
+      <label>Collateral to lock (GEN, must exceed the premium)</label>
+      <input id="fColl" type="number" min="0" step="0.01" placeholder="0.3" />
+      <div class="btnrow">
+        <button class="solid" id="uwBtn">Lock collateral (underwriter)</button>
+        <button class="ghost" id="refundBtn">Refund premium (holder, if unaccepted)</button>
+      </div>
+      <div class="msg" id="actMsg"></div>
+    </div>
+  </div>
+
+  <footer>
+    <div id="footLinks"></div>
+    CoverGuard · premium + collateral custody, on-chain data reads, real payouts · Intelligent Contract on GenLayer
+  </footer>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/genlayer-js@1.1.8";
+import { testnetBradbury } from "https://esm.sh/genlayer-js@1.1.8/chains";
+
+// ---- CONFIG (set after deployment) --------------------------------------
+const ADDR = "0xE268e9B8A43Ff4A5b547b2AB960f2398FAa1a20F";
+const REPO = "https://github.com/zy54425689/coverguard";
+const EXPLORER = "https://explorer-bradbury.genlayer.com/address/" + ADDR;
+// -------------------------------------------------------------------------
+
+const STATE = ["AWAITING UNDERWRITER", "ACTIVE", "JUDGED", "SETTLED", "CANCELLED"];
+const $ = (id) => document.getElementById(id);
+const readClient = createClient({ chain: testnetBradbury });
+let writeClient = null, myAddr = null, selected = null, policies = [];
+
+const eth = (w) => (Number(w) / 1e18).toFixed(6);
+const short = (a) => (a && a.length > 16) ? a.slice(0, 8) + "…" + a.slice(-6) : a;
+function msg(el, t, k = "info") { el.className = "msg show " + k; el.textContent = t; }
+function badge(s) { const n = Number(s); return `<span class="badge b${n}">${STATE[n] ?? s}</span>`; }
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+const gen = (gw) => BigInt(Math.round(parseFloat(gw) * 1e6)) * 1000000000000n;
+
+function renderList() {
+  const el = $("list");
+  if (!policies.length) { el.innerHTML = `<div class="empty">No policies yet — open the first one below.</div>`; return; }
+  el.innerHTML = policies.map((p) => `
+    <div class="pol ${selected === Number(p.id) ? "sel" : ""}" data-id="${p.id}">
+      <div class="top">
+        <span class="id">POLICY #${p.id}</span>
+        <span>${badge(p.state)}${Number(p.state) >= 2 ? (p.triggered ? ' <span class="badge b2">TRIGGER FIRED</span>' : ' <span class="badge b4">NO TRIGGER</span>') : ""}</span>
+      </div>
+      <div class="cond">${esc(p.condition)}</div>
+      <div class="nums">
+        <div>PREMIUM<b>${eth(p.premium)}</b></div>
+        <div>COLLATERAL<b class="c">${eth(p.coverage)}</b></div>
+        <div>HOLDER<b>${short(p.holder)}</b></div>
+        <div>UNDERWRITER<b>${short(p.underwriter)}</b></div>
+      </div>
+    </div>`).join("");
+  el.querySelectorAll(".pol").forEach((c) => c.addEventListener("click", () => openPolicy(Number(c.dataset.id))));
+}
+
+function renderDetail(p) {
+  selected = Number(p.id);
+  $("detail").classList.add("show");
+  $("dTitle").textContent = `Policy #${p.id} · ${STATE[Number(p.state)] ?? p.state}`;
+  $("dMeta").innerHTML =
+    `holder <b>${short(p.holder)}</b> · underwriter <b>${short(p.underwriter)}</b><br />` +
+    `premium <b>${eth(p.premium)} GEN</b> · collateral <b>${eth(p.coverage)} GEN</b>` +
+    (p.paid ? ` · <b>paid out</b>` : "") +
+    `<br />contract holds <b>${eth(p.contract_balance)} GEN</b>`;
+  $("dCond").textContent = p.condition;
+  $("dUrl").innerHTML = `<a href="${esc(p.hazard_url)}" target="_blank" rel="noopener">${esc(p.hazard_url)}</a>`;
+
+  if (Number(p.state) >= 2) {
+    $("dVerdict").innerHTML = `
+      <div class="verdict ${p.triggered ? "yes" : "no"}">
+        <div class="t">${p.triggered ? "JURY VERDICT · TRIGGER FIRED — COVERAGE PAYABLE" : "JURY VERDICT · NO TRIGGER — PREMIUM RETAINED"}</div>
+        <p>${esc(p.ruling_reason)}</p>
+        ${p.ruling_confidence ? `<div class="t" style="margin-top:8px;color:var(--faint)">confidence: ${esc(p.ruling_confidence)}</div>` : ""}
+      </div>`;
+  } else { $("dVerdict").innerHTML = ""; }
+
+  $("dJudgeBtn").disabled = Number(p.state) !== 1;
+  $("dSettleBtn").disabled = Number(p.state) !== 2 || p.paid;
+  $("refundBtn").disabled = !(myAddr && Number(p.state) === 0 && p.holder && p.holder.toLowerCase() === myAddr.toLowerCase());
+  $("uwBtn").disabled = !(myAddr && Number(p.state) === 0 && p.underwriter && p.underwriter.toLowerCase() === myAddr.toLowerCase());
+  renderList();
+}
+
+async function loadAll() {
+  try {
+    const count = Number(await readClient.readContract({ address: ADDR, functionName: "get_policy_count", args: [] }));
+    policies = [];
+    for (let i = 1; i <= count; i++) {
+      policies.push(await readClient.readContract({ address: ADDR, functionName: "get_policy", args: [BigInt(i)] }));
+    }
+    renderList();
+    const pool = await readClient.readContract({ address: ADDR, functionName: "get_contract_balance", args: [] });
+    $("sPool").innerHTML = `${eth(pool)}<small>GEN</small>`;
+    $("sCount").textContent = count;
+    $("sActive").textContent = policies.filter((p) => Number(p.state) === 1).length;
+    $("sTrig").textContent = policies.filter((p) => p.triggered).length;
+    $("ledgerNote").textContent = `· ${count} on file`;
+    if (selected) { const again = policies.find((p) => Number(p.id) === selected); if (again) renderDetail(again); }
+  } catch (e) {
+    $("list").innerHTML = `<div class="empty">Could not read the ledger: ${esc((e.message || e).toString().slice(0, 130))}</div>`;
+  }
+}
+
+async function openPolicy(id) {
+  try {
+    const p = await readClient.readContract({ address: ADDR, functionName: "get_policy", args: [BigInt(id)] });
+    renderDetail(p);
+    $("detail").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch (e) { msg($("dMsg"), "Read failed: " + (e.message || e).toString().slice(0, 160), "err"); }
+}
+
+$("connectBtn").addEventListener("click", async () => {
+  if (!window.ethereum) return msg($("createMsg"), "No wallet detected — install MetaMask.", "err");
+  try {
+    const a = await window.ethereum.request({ method: "eth_requestAccounts" });
+    myAddr = a[0];
+    try { await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x107d" }] }); }
+    catch {
+      await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{
+        chainId: "0x107d", chainName: "GenLayer Bradbury Testnet",
+        nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 },
+        rpcUrls: ["https://rpc-bradbury.genlayer.com"],
+        blockExplorerUrls: ["https://explorer-bradbury.genlayer.com"],
+      }]});
+    }
+    writeClient = createClient({ chain: testnetBradbury, account: window.ethereum });
+    $("netLabel").textContent = short(myAddr);
+    $("netDot").classList.add("on");
+    $("connectBtn").textContent = "Connected";
+    msg($("createMsg"), "Wallet connected.", "ok");
+    if (selected) openPolicy(selected);
+  } catch (e) { msg($("createMsg"), "Connect failed: " + e.message, "err"); }
+});
+
+async function write(fn, args, el, label, value = 0n) {
+  if (!writeClient) return msg(el, "Connect your wallet first.", "err");
+  try {
+    msg(el, `${label} → submitting…`, "info");
+    const hash = await writeClient.writeContract({ address: ADDR, functionName: fn, args, value });
+    msg(el, `${label} sent: ${hash}`, "ok");
+    setTimeout(loadAll, 15000);
+  } catch (e) { msg(el, `${label} failed: ` + (e.message || e).toString().slice(0, 200), "err"); }
+}
+
+$("createBtn").addEventListener("click", () => {
+  const u = $("fUw").value.trim(), url = $("fUrl").value.trim(), c = $("fCond").value.trim(), g = $("fPrem").value;
+  if (!u || !url || !c || !g) return msg($("createMsg"), "Fill in underwriter, data source, condition and premium.", "err");
+  write("create_policy", [u, url, c], $("createMsg"), `create_policy (premium ${g} GEN)`, gen(g));
+});
+
+$("uwBtn").addEventListener("click", () => {
+  const id = $("fId").value, g = $("fColl").value;
+  if (!id || !g) return msg($("actMsg"), "Fill in policy # and collateral.", "err");
+  write("underwrite_policy", [BigInt(id)], $("actMsg"), `underwrite_policy (collateral ${g} GEN)`, gen(g));
+});
+
+$("refundBtn").addEventListener("click", () => {
+  const id = $("fId").value;
+  if (!id) return msg($("actMsg"), "Fill in policy #.", "err");
+  write("refund_unaccepted", [BigInt(id)], $("actMsg"), "refund_unaccepted");
+});
+
+$("dJudgeBtn").addEventListener("click", () => {
+  if (!selected) return msg($("dMsg"), "Open a policy first.", "err");
+  write("judge_claim", [BigInt(selected)], $("dMsg"), "judge_claim (LLM fetches the data source on-chain)");
+});
+$("dSettleBtn").addEventListener("click", () => {
+  if (!selected) return msg($("dMsg"), "Open a policy first.", "err");
+  write("settle", [BigInt(selected)], $("dMsg"), "settle (real payout)");
+});
+
+$("reloadBtn").addEventListener("click", loadAll);
+$("jumpBtn").addEventListener("click", () => { const v = $("jumpId").value; if (v) openPolicy(Number(v)); });
+
+$("footLinks").innerHTML = `contract <a href="${EXPLORER}" target="_blank" rel="noopener">${ADDR}</a> · <a href="${REPO}" target="_blank" rel="noopener">source</a><br />`;
+loadAll();
+</script>
+</body>
+</html>
